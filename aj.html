@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Pop Word Game</title>
+    <style>
+        @keyframes fall {
+            from { top: -100px; }
+            to { top: calc(100vh - 100px); }
+        }
+        
+        .bubble {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            animation: fall linear;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            transition: transform 0.2s;
+        }
+        
+        .bubble:hover {
+            transform: scale(1.1);
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-image: radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,165,0,0.8) 50%, rgba(255,0,0,0) 70%);
+            border-radius: 50%;
+            transform: scale(0);
+            opacity: 1;
+            animation: explode 0.5s forwards;
+        }
+        
+        .wrong-explosion {
+            background-image: radial-gradient(circle, rgba(100,100,100,0.8) 0%, rgba(50,50,50,0.8) 50%, rgba(0,0,0,0) 70%);
+        }
+        
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        
+        .cannon {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 60px;
+            background-color: #555;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 5px;
+        }
+        
+        .cannon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .cannon-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #1a237e, #0d47a1);
+        }
+        
+        .score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .question-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2rem;
+            max-width: 80%;
+            text-align: center;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+            display: none;
+        }
+        
+        .restart-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .restart-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score-display">Score: <span id="score">0</span></div>
+        <div class="question-display" id="question"></div>
+        
+        <div class="cannon">
+            <div class="cannon-btn bg-red-500" data-key="A">A</div>
+            <div class="cannon-btn bg-blue-500" data-key="B">B</div>
+            <div class="cannon-btn bg-green-500" data-key="C">C</div>
+            <div class="cannon-btn bg-yellow-500" data-key="D">D</div>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h1 class="text-4xl font-bold mb-4">Game Over!</h1>
+            <p class="text-2xl mb-2">Your final score: <span id="finalScore">0</span></p>
+            <p class="text-xl mb-6" id="resultMessage"></p>
+            <button class="restart-btn" id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game data
+        const questions = [
+            {
+                question: "What is the capital of France?",
+                options: ["London", "Berlin", "Paris", "Madrid"],
+                correct: 2
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                correct: 1
+            },
+            {
+                question: "What is the largest mammal?",
+                options: ["Elephant", "Blue Whale", "Giraffe", "Polar Bear"],
+                correct: 1
+            },
+            {
+                question: "Who painted the Mona Lisa?",
+                options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
+                correct: 2
+            },
+            {
+                question: "What is the chemical symbol for gold?",
+                options: ["Go", "Gd", "Au", "Ag"],
+                correct: 2
+            },
+            {
+                question: "Which country is home to the kangaroo?",
+                options: ["New Zealand", "South Africa", "Australia", "Brazil"],
+                correct: 2
+            },
+            {
+                question: "What is the largest ocean on Earth?",
+                options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                correct: 3
+            },
+            {
+                question: "Which language has the most native speakers?",
+                options: ["English", "Spanish", "Mandarin Chinese", "Hindi"],
+                correct: 2
+            },
+            {
+                question: "What is the main component of the Sun?",
+                options: ["Liquid lava", "Hydrogen", "Oxygen", "Carbon"],
+                correct: 1
+            },
+            {
+                question: "How many continents are there?",
+                options: ["5", "6", "7", "8"],
+                correct: 2
+            }
+        ];
+        
+        // Game variables
+        let score = 0;
+        let currentQuestionIndex = 0;
+        let gameActive = true;
+        let fallSpeed = 5; // seconds to fall
+        let activeBubbles = [];
+        let questionAnswered = false;
+        
+        // DOM elements
+        const scoreDisplay = document.getElementById('score');
+        const questionDisplay = document.getElementById('question');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const resultMessage = document.getElementById('resultMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const cannonButtons = document.querySelectorAll('.cannon-btn');
+        
+        // Initialize game
+        function initGame() {
+            score = 0;
+            currentQuestionIndex = 0;
+            gameActive = true;
+            fallSpeed = 5;
+            activeBubbles = [];
+            questionAnswered = false;
+            
+            scoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'none';
+            
+            loadQuestion();
+        }
+        
+        // Load a new question
+        function loadQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                endGame();
+                return;
+            }
+            
+            questionAnswered = false;
+            const question = questions[currentQuestionIndex];
+            questionDisplay.textContent = question.question;
+            
+            // Clear any existing bubbles
+            activeBubbles.forEach(bubble => {
+                if (bubble.element && bubble.element.parentNode) {
+                    bubble.element.parentNode.removeChild(bubble.element);
+                }
+            });
+            activeBubbles = [];
+            
+            // Create new bubbles
+            const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
+            const letters = ['A', 'B', 'C', 'D'];
+            
+            question.options.forEach((option, index) => {
+                const bubble = document.createElement('div');
+                bubble.className = `bubble ${colors[index]}`;
+                bubble.textContent = option;
+                bubble.dataset.letter = letters[index];
+                bubble.dataset.correct = index === question.correct;
+                
+                // Random horizontal position
+                const leftPos = Math.random() * (window.innerWidth - 100);
+                bubble.style.left = `${leftPos}px`;
+                bubble.style.animationDuration = `${fallSpeed}s`;
+                
+                document.querySelector('.game-container').appendChild(bubble);
+                
+                activeBubbles.push({
+                    element: bubble,
+                    letter: letters[index],
+                    correct: index === question.correct
+                });
+                
+                // Remove bubble when animation ends
+                bubble.addEventListener('animationend', () => {
+                    if (!questionAnswered) {
+                        handleBubbleMiss(bubble);
+                    }
+                });
+            });
+        }
+        
+        // Handle bubble click
+        function handleBubbleClick(bubble, letter) {
+            if (questionAnswered) return;
+            
+            questionAnswered = true;
+            const isCorrect = bubble.dataset.correct === 'true';
+            
+            // Create explosion effect
+            const explosion = document.createElement('div');
+            explosion.className = isCorrect ? 'explosion' : 'explosion wrong-explosion';
+            explosion.style.left = `${bubble.offsetLeft - 10}px`;
+            explosion.style.top = `${bubble.offsetTop - 10}px`;
+            document.querySelector('.game-container').appendChild(explosion);
+            
+            // Remove bubble and explosion after animation
+            bubble.style.display = 'none';
+            setTimeout(() => {
+                if (explosion.parentNode) {
+                    explosion.parentNode.removeChild(explosion);
+                }
+            }, 500);
+            
+            // Update score
+            if (isCorrect) {
+                score += 4;
+                playSound('correct');
+            } else {
+                score -= 1;
+                playSound('wrong');
+            }
+            scoreDisplay.textContent = score;
+            
+            // Move to next question
+            currentQuestionIndex++;
+            setTimeout(() => {
+                // Increase speed by 5%
+                fallSpeed *= 0.95;
+                loadQuestion();
+            }, 1000);
+        }
+        
+        // Handle bubble miss (when it reaches bottom without being clicked)
+        function handleBubbleMiss(bubble) {
+            if (questionAnswered) return;
+            
+            questionAnswered = true;
+            
+            // Update score
+            score -= 1;
+            scoreDisplay.textContent = score;
+            playSound('wrong');
+            
+            // Move to next question
+            currentQuestionIndex++;
+            setTimeout(() => {
+                // Increase speed by 5%
+                fallSpeed *= 0.95;
+                loadQuestion();
+            }, 500);
+        }
+        
+        // End the game
+        function endGame() {
+            gameActive = false;
+            finalScoreDisplay.textContent = score;
+            
+            // Custom message based on score
+            if (score >= 30) {
+                resultMessage.textContent = "Excellent! You're a word master!";
+            } else if (score >= 20) {
+                resultMessage.textContent = "Great job! You know your stuff!";
+            } else if (score >= 10) {
+                resultMessage.textContent = "Good effort! Keep practicing!";
+            } else {
+                resultMessage.textContent = "Keep trying! You'll improve!";
+            }
+            
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Play sound effects
+        function playSound(type) {
+            const sounds = {
+                correct: 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3',
+                wrong: 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3'
+            };
+            
+            const audio = new Audio(sounds[type]);
+            audio.play();
+        }
+        
+        // Event listeners
+        cannonButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const letter = button.textContent;
+                const bubble = activeBubbles.find(b => b.letter === letter);
+                
+                if (bubble) {
+                    handleBubbleClick(bubble.element, letter);
+                }
+            });
+        });
+        
+        restartBtn.addEventListener('click', initGame);
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            const key = e.key.toUpperCase();
+            if (['A', 'B', 'C', 'D'].includes(key)) {
+                const bubble = activeBubbles.find(b => b.letter === key);
+                
+                if (bubble) {
+                    // Highlight cannon button
+                    const cannonBtn = document.querySelector(`.cannon-btn[data-key="${key}"]`);
+                    cannonBtn.style.transform = 'scale(1.2)';
+                    setTimeout(() => {
+                        cannonBtn.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    handleBubbleClick(bubble.element, key);
+                }
+            }
+        });
+        
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>
