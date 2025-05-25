@@ -4,23 +4,26 @@ export interface Question {
     correct: number;
 }
 
+export interface Position {
+    x: number;
+    y: number;
+}
+
 export interface Bubble {
-    element: HTMLDivElement;
-    letter: string;
-    correct: boolean;
+    id: string;
+    text: string;
+    position: Position;
+    fallSpeed: number;
+    isCorrect: boolean;
+    isSelected: boolean;
+    isExploding: boolean;
+    hasFallen: boolean;
 }
 
 export interface GameState {
     score: number;
     currentQuestionIndex: number;
-    gameActive: boolean;
-    fallSpeed: number;
-    activeBubbles: Array<{
-        id: string;
-        letter: string;
-        correct: boolean;
-        position: { left: number };
-        text: string;
-    }>;
-    questionAnswered: boolean;
+    gameOver: boolean;
+    bubbles: Bubble[];
+    currentQuestion: Question | null;
 }

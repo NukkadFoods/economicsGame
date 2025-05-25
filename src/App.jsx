@@ -5,12 +5,35 @@ import './styles/animations.css';
 import './styles/components.css';
 
 const App = () => {
-    const [gameStarted, setGameStarted] = useState(false);
+    const [gameState, setGameState] = useState({
+        started: false,
+        subject: 'accounts'
+    });
 
-    return gameStarted ? (
-        <GameContainer onBackToHome={() => setGameStarted(false)} />
+    const handleStartGame = (subject) => {
+        console.log('Starting game with subject:', subject);
+        setGameState({
+            started: true,
+            subject: subject || 'accounts'
+        });
+    };
+
+    const handleBackToHome = () => {
+        setGameState({
+            started: false,
+            subject: 'accounts'
+        });
+    };
+
+    // Render homepage or game container based on game state
+    return gameState.started ? (
+        <GameContainer 
+            key={gameState.subject} // Force remount when subject changes
+            subject={gameState.subject} 
+            onBackToHome={handleBackToHome} 
+        />
     ) : (
-        <HomePage onStartGame={() => setGameStarted(true)} />
+        <HomePage onStartGame={handleStartGame} />
     );
 };
 

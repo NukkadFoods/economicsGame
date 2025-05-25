@@ -1,61 +1,98 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Bubble from './Bubble';
 import Cannon from './Cannon';
 import QuestionDisplay from './QuestionDisplay';
 import ScoreDisplay from './ScoreDisplay';
 import GameOver from './GameOver';
-import useGame from '../hooks/useGame';
+import useGame from '../hooks/useGame.new.ts';
 
-const GameContainer = ({ onBackToHome }) => {    const {
+// Display an error if loading takes too long
+const LOADING_TIMEOUT = 5000;
+
+const GameContainer = ({ onBackToHome, subject }) => {
+    console.log('GameContainer rendering with subject:', subject);
+
+    const {
         bubbles,
         score,
         currentQuestion,
-        handleKeyPress,
-        handleLetterClick,
-        handleBubbleClick,
-        handleBubbleFall,
         gameOver,
+        handleBubbleClick: handleBubbleAction,
+        handleBubbleFall,
+        handleLetterClick,
         restartGame
-    } = useGame();
+    } = useGame(subject);
 
-    React.useEffect(() => {
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [handleKeyPress]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
+    useEffect(() => {
+        console.log('GameContainer useEffect triggered');
+        console.log('Current question:', currentQuestion);
+        console.log('Bubbles:', bubbles);
+        console.log('Game over:', gameOver);
 
-    return (
+        const timer = setTimeout(() => {
+            if (!currentQuestion) {
+                console.error('Questions failed to load after timeout');
+                setError('Failed to load questions. Please try again.');
+            }
+            setIsLoading(false);
+        }, LOADING_TIMEOUT);
+
+        if (currentQuestion) {
+            console.log('Question loaded successfully:', currentQuestion);
+            setIsLoading(false);
+            setError(null);
+        }
+
+        return () => clearTimeout(timer);
+    }, [subject, currentQuestion, bubbles, gameOver]);
+
+    const handleBubbleClick = (index) => {
+        handleBubbleAction(index);
+    };    return (
         <div className="game-container">
             <button className="back-button" onClick={onBackToHome}>
                 ←
             </button>
-            <div className="game-header">
-                <ScoreDisplay score={score} />
-                {!gameOver && currentQuestion && (
-                    <QuestionDisplay question={currentQuestion} />
-                )}
-            </div>
+              <ScoreDisplay score={score} />
+
+            {/* Loading state */}
+            {isLoading && (
+                <div className="loading-message">Loading questions...</div>
+            )}
+
+            {/* Error state */}
+            {error && (
+                <div className="error-message">{error}</div>
+            )}
+
+            {/* Question display */}
+            {!isLoading && !error && currentQuestion && !gameOver && (
+                <QuestionDisplay question={currentQuestion.question} />
+            )}
             
             {!gameOver ? (
-                <>
-                    <div className="game-area">
-                        {bubbles.map((bubble, index) => (                            <Bubble
+                <>                    <div className="game-area">
+                        {bubbles && bubbles.map((bubble, index) => (
+                            <Bubble
                                 key={bubble.id}
-                                id={bubble.id}
-                                text={bubble.text}
-                                position={bubble.position}
-                                isCorrect={bubble.isCorrect}
-                                isSelected={bubble.isSelected}
+                                {...bubble}
                                 optionIndex={index}
-                                fallSpeed={bubble.fallSpeed}
                                 onClick={() => handleBubbleClick(index)}
-                                onFall={handleBubbleFall}
+                                onFall={() => handleBubbleFall(bubble.id)}
                             />
                         ))}
                     </div>
                     <Cannon onLetterClick={handleLetterClick} />
                 </>
             ) : (
-                <GameOver score={score} onRestart={restartGame} />
+                <GameOver
+                    score={score}
+                    onRestart={restartGame}
+                    onBackToHome={onBackToHome}
+                />
             )}
         </div>
     );

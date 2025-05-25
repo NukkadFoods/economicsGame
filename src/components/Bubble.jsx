@@ -1,8 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 
-const Bubble = ({ text, position, isCorrect, isSelected, optionIndex, fallSpeed, onClick, onFall, id }) => {
+const createParticles = (isCorrect) => {
+    const particles = [];
+    const particleCount = 12;
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (i * 360) / particleCount;
+        const tx = Math.cos((angle * Math.PI) / 180) * 100;
+        const ty = Math.sin((angle * Math.PI) / 180) * 100;
+        particles.push(
+            <div
+                key={i}
+                className={`burst-particle ${isCorrect ? 'correct' : 'wrong'}`}
+                style={{
+                    '--tx': `${tx}px`,
+                    '--ty': `${ty}px`,
+                }}
+            />
+        );
+    }
+    return particles;
+};
+
+const Bubble = ({ 
+    text, 
+    position, 
+    isCorrect, 
+    isSelected, 
+    optionIndex, 
+    fallSpeed, 
+    onClick, 
+    onFall, 
+    id 
+}) => {
+    const [hasStartedFalling, setHasStartedFalling] = useState(false);
     const [showEffect, setShowEffect] = useState(false);
-    
+
+    useEffect(() => {
+        if (!hasStartedFalling) {
+            const timer = setTimeout(() => {
+                setHasStartedFalling(true);
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [hasStartedFalling]);
+
     useEffect(() => {
         if (isSelected) {
             setShowEffect(true);
@@ -19,30 +60,12 @@ const Bubble = ({ text, position, isCorrect, isSelected, optionIndex, fallSpeed,
 
     const bubbleStyle = {
         left: `${position.x}%`,
-        top: `${position.y}%`,
-        transform: `translate(-50%, -50%)`,
-        position: 'absolute',
-        transition: 'all 0.3s ease',
-        animation: `fall ${fallSpeed}s linear forwards`
+        animation: hasStartedFalling ? `fall ${fallSpeed}s linear forwards` : 'none'
     };
 
     const bubbleClass = `bubble ${isSelected ? 'selected' : ''} ${
         isSelected && isCorrect ? 'correct' : isSelected ? 'incorrect' : ''
     }`;
-
-    const createSparkles = () => {
-        const sparkles = [];
-        for (let i = 0; i < 8; i++) {
-            const angle = (i * 45) * Math.PI / 180;
-            const style = {
-                left: `${50 + Math.cos(angle) * 100}%`,
-                top: `${50 + Math.sin(angle) * 100}%`,
-                animation: `sparkle 0.5s ease-out ${i * 0.1}s`
-            };
-            sparkles.push(<div key={i} className="sparkle" style={style} />);
-        }
-        return sparkles;
-    };
 
     return (
         <div 
@@ -52,14 +75,14 @@ const Bubble = ({ text, position, isCorrect, isSelected, optionIndex, fallSpeed,
             onClick={onClick}
             onAnimationEnd={handleAnimationEnd}
         >
-            {text}            {showEffect && isSelected && (
+            <span className="bubble-text">{text}</span>
+            {showEffect && isSelected && (
                 <>
-                    {isCorrect && (
-                        <>
-                            <div className="correct-effect" />
-                            {createSparkles()}
-                        </>
-                    )}
+                    <div className={`explosion ${isCorrect ? 'correct' : 'wrong'}`} />
+                    <div className="bubble-burst">
+                        {createParticles(isCorrect)}
+                    </div>
+                    <div className={`ripple ${isCorrect ? 'correct' : 'wrong'}`} />
                     <div className={`floating-score ${isCorrect ? 'score-positive' : 'score-negative'}`}>
                         {isCorrect ? '+4' : '-1'}
                     </div>
