@@ -17,14 +17,12 @@ const Cannon = ({ onLetterClick }) => {
             setTimeout(() => button.classList.remove('active'), 200);
         }
         onLetterClick(letter);
-    }, [onLetterClick]);
-
-    const handleKeyPress = useCallback((event) => {
+    }, [onLetterClick]);    const handleKeyPress = useCallback((event) => {
         const key = event.key.toUpperCase();
         if (letters.includes(key)) {
             handleButtonClick(key);
         }
-    }, [handleButtonClick]);
+    }, [handleButtonClick, letters]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyPress);
