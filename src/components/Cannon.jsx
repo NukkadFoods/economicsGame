@@ -1,7 +1,7 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 
 const Cannon = ({ onLetterClick }) => {
-    const letters = ['A', 'B', 'C', 'D'];
+    const letters = useMemo(() => ['A', 'B', 'C', 'D'], []);
     const backgroundColors = {
         A: 'bg-red-500',
         B: 'bg-blue-500',
