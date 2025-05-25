@@ -1262,10 +1262,11 @@
 
 @media screen and (max-width: 480px) {
     .bubble {
-        width: 90px;
-        height: 90px;
-        font-size: 14px;
-        padding: 5px;
+        width: 75px;
+        height: 75px;
+        font-size: 13px;
+        padding: 4px;
+        transform: translateX(-40%);
     }
 
     .question-display {
@@ -1339,10 +1340,11 @@
 /* Additional adjustments for very small screens */
 @media screen and (max-width: 360px) {
     .bubble {
-        width: 80px;
-        height: 80px;
-        font-size: 12px;
-        padding: 4px;
+        width: 65px;
+        height: 65px;
+        font-size: 11px;
+        padding: 3px;
+        transform: translateX(-15%);
     }
 
     .cannon-btn {
