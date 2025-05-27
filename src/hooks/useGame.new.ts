@@ -44,17 +44,15 @@ const getRandomQuestions = (subjectQuestions: Question[], count = 10): Question[
     return selected;
 };
 
-const createBubbles = (question: Question | null, currentQuestionIndex: number): Bubble[] => {
-    if (!question || !Array.isArray(question.options)) return [];
-    
-    const spacing = 20;
-    const startX = spacing;
+const createBubbles = (question: Question | null, currentQuestionIndex: number): Bubble[] => {    if (!question || !Array.isArray(question.options)) return [];      
+    const spacing = -6; // Minimal spacing between bubbles
+    const startX = 13; // Negative value to move bubbles more to the left
     
     return question.options.map((option, index) => ({
         id: `bubble-${Date.now()}-${index}`,
         text: option,
         position: {
-            x: startX + (index * (100 - spacing * 2) / 3),
+            x: startX + (index * (50 - spacing * 2) / 3), // Using only 50% of screen width to keep bubbles far left
             y: -20
         },
         fallSpeed: Math.random() * 0.15 + INITIAL_FALL_SPEED - (currentQuestionIndex * SPEED_INCREASE_PER_QUESTION),
