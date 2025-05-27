@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { questionsBySubject } from '../data/allQuestions';
 
-const INITIAL_FALL_SPEED = 9;
-const SPEED_INCREASE_PER_QUESTION = 0.9;
+const INITIAL_FALL_SPEED = 15; // Increased by 1.5x to make bubbles fall slower
+const SPEED_INCREASE_PER_QUESTION = 0.5; // Adjusted to maintain relative acceleration rate with new base speed
 
 interface Question {
     question: string;
