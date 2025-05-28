@@ -92,46 +92,57 @@
         touch-action: none;
         -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
-        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+        transition: all 0.3s ease;
     }
 
     .connection-dot {
-        width: 28px;  /* Even larger touch target */
-        height: 28px;
-        transition: transform 0.2s, background-color 0.2s;
+        width: 32px;  /* Even larger touch target */
+        height: 32px;
+        transition: all 0.3s ease;
+    }
+
+    .matching-item.dragging {
+        transform: scale(0.95);
+        opacity: 0.8;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        border: 2px solid #2196F3;
+        z-index: 100;
     }
 
     .matching-item.touch-hover {
         transform: scale(1.05);
-        box-shadow: 0 0 15px rgba(33, 150, 243, 0.4);
-        border: 2px solid #2196F3;
+        border: 3px solid #2196F3;
+        box-shadow: 0 0 20px rgba(33, 150, 243, 0.4);
         background-color: rgba(33, 150, 243, 0.15);
-    }
-
-    .matching-item.dragging {
-        opacity: 0.8;
-        transform: scale(0.98);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        z-index: 50;
     }
 
     .matching-item.dragging .connection-dot {
         transform: scale(1.2);
         background-color: #2196F3;
+        box-shadow: 0 0 10px rgba(33, 150, 243, 0.6);
     }
 
-    /* Enhanced touch feedback */
     .connection-dot:active {
         transform: scale(1.3);
         background-color: #2196F3;
+        box-shadow: 0 0 15px rgba(33, 150, 243, 0.8);
     }
 
-    /* Prevent scrolling and selections */
+    /* Prevent scrolling and text selection */
     .matching-container {
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
         overflow: hidden;
         height: 100%;
+    }
+
+    /* Make the SVG line more visible */
+    .connection-line.dragging {
+        stroke: #2196F3;
+        stroke-width: 4;
+        filter: drop-shadow(0 0 3px rgba(33, 150, 243, 0.5));
     }
 }
 

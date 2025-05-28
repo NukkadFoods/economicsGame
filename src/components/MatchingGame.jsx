@@ -98,15 +98,14 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         e.preventDefault(); // Prevent scrolling while dragging
         e.stopPropagation(); // Stop event bubbling
         
-        const touch = e.touches[0] || e.changedTouches[0];
+        const touch = e.touches[0];
         if (!touch) return;
 
         const item = e.target.closest('.matching-item');
         if (!item) return;
 
-        // Don't start drag if item is already matched correctly
-        const isMatched = item.classList.contains('correct');
-        if (isMatched) return;
+        // Don't start drag if item is already matched
+        if (item.classList.contains('correct') || item.classList.contains('incorrect')) return;
 
         const dot = item.querySelector(`.connection-dot.${fromType === 'option' ? 'front' : 'back'}`);
         if (!dot) return;
@@ -114,15 +113,24 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         // Add dragging class to the item
         item.classList.add('dragging');
 
-        // Create a synthetic event with client coordinates from the touch
-        const syntheticEvent = {
-            target: dot,
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        };
+        // Get the starting point for the line
+        const rect = svgRef.current.getBoundingClientRect();
+        const touchX = dot.offsetLeft + dot.offsetWidth / 2;
+        const touchY = dot.offsetTop + dot.offsetHeight / 2;
 
-        handleDragStart(syntheticEvent, fromType, id);
-    }, [handleDragStart]);
+        // Set dragging state with the correct starting point
+        setGameState(prev => ({
+            ...prev,
+            dragging: {
+                fromType,
+                id,
+                startPoint: {
+                    x: touchX - rect.left,
+                    y: touchY - rect.top
+                }
+            }
+        }));
+    }, []);
 
     const handleDragMove = useCallback((point) => {
         if (!gameState.dragging || !svgRef.current) return;
@@ -142,63 +150,78 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             line.setAttribute('y2', String(gameState.dragging.startPoint.y));
         }
     }, [gameState.dragging]);    const handleDragEnd = useCallback((e, toType, id) => {
-        // Remove any touch-hover classes first
-        document.querySelectorAll('.matching-item').forEach(item => 
-            item.classList.remove('touch-hover')
-        );
+        // Remove hover and dragging classes
+        document.querySelectorAll('.matching-item').forEach(item => {
+            item.classList.remove('touch-hover', 'dragging');
+        });
 
-        if (!gameState.dragging || gameState.dragging.fromType === toType) {
+        if (!gameState.dragging) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
         }
-        
-        // For touch events, find the element we're hovering over
+
+        let dropId = id;
+        let dropType = toType;
+
+        // Handle touch events
         if (e.type.startsWith('touch')) {
             const touch = e.changedTouches[0];
-            if (touch) {
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (targetElement) {
-                    const matchingItem = targetElement.closest('.matching-item');
-                    if (matchingItem) {
-                        // Get the opposite type from what we started dragging
-                        const expectedType = gameState.dragging.fromType === 'question' ? 'option' : 'question';
-                        const actualType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
-                        
-                        // Only proceed if we're dropping on the correct type
-                        if (actualType === expectedType) {
-                            id = matchingItem.id.split('-')[1];
-                            toType = actualType;
-                        } else {
-                            setGameState(prev => ({ ...prev, dragging: null }));
-                            return;
-                        }
-                    } else {
-                        setGameState(prev => ({ ...prev, dragging: null }));
-                        return;
-                    }
-                } else {
-                    setGameState(prev => ({ ...prev, dragging: null }));
-                    return;
-                }
-            } else {
+            if (!touch) {
                 setGameState(prev => ({ ...prev, dragging: null }));
                 return;
             }
+
+            // Find the element under the touch point
+            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!targetElement) {
+                setGameState(prev => ({ ...prev, dragging: null }));
+                return;
+            }
+
+            // Find the matching item we're dropping on
+            const matchingItem = targetElement.closest('.matching-item');
+            if (!matchingItem) {
+                setGameState(prev => ({ ...prev, dragging: null }));
+                return;
+            }
+
+            // Get the type and ID from the matching item
+            const actualType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
+            const expectedType = gameState.dragging.fromType === 'question' ? 'option' : 'question';
+
+            // Only proceed if dropping on the correct type
+            if (actualType !== expectedType || actualType === gameState.dragging.fromType) {
+                setGameState(prev => ({ ...prev, dragging: null }));
+                return;
+            }
+
+            dropId = matchingItem.id.split('-')[1];
+            dropType = actualType;
         }
 
-        const questionId = toType === 'question' ? id : gameState.dragging.id;
-        const optionId = toType === 'option' ? id : gameState.dragging.id;
+        // Don't allow dropping on the same type
+        if (gameState.dragging.fromType === dropType) {
+            setGameState(prev => ({ ...prev, dragging: null }));
+            return;
+        }
 
-        const question = gameState.questions.find(q => q.id === questionId);
-        const option = gameState.options.find(o => o.id === optionId);
+        // Determine question and option IDs based on the drag source and drop target
+        const questionId = dropType === 'question' ? dropId : gameState.dragging.id;
+        const optionId = dropType === 'option' ? dropId : gameState.dragging.id;
 
+        // Find the matching items
+        const question = gameState.questions.find(q => q.id === parseInt(questionId));
+        const option = gameState.options.find(o => o.id === parseInt(optionId));
+
+        // Validate the connection
         if (!question || !option || question.isMatched || option.isMatched) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
         }
 
         const isCorrect = question.correctAnswer === option.text;
-        
+
+        // Update game state with new connection
         setGameState(prev => {
             // Calculate new score first
             const scoreChange = isCorrect ? 4 : -1;
@@ -206,24 +229,25 @@ const MatchingGame = ({ subject, onBackToHome }) => {
 
             // Update questions and options state
             const newQuestions = prev.questions.map(q =>
-                q.id === questionId ? { ...q, isMatched: isCorrect } : q
+                q.id === parseInt(questionId) ? { ...q, isMatched: isCorrect } : q
             );
 
             const newOptions = prev.options.map(o =>
-                o.id === optionId ? { ...o, isMatched: isCorrect } : o
+                o.id === parseInt(optionId) ? { ...o, isMatched: isCorrect } : o
             );
 
             // Add new connection
             const newConnections = [
                 ...prev.connections,
-                { questionId, optionId, isCorrect }
+                { questionId: parseInt(questionId), optionId: parseInt(optionId), isCorrect }
             ];
 
             // Calculate game over condition based on correct matches only
             const correctMatchesCount = newConnections.filter(conn => conn.isCorrect).length;
             const allQuestionsMatched = correctMatchesCount === prev.questions.length;
 
-            console.log('Score:', newScore, 'Correct matches:', correctMatchesCount, 'Total questions:', prev.questions.length, 'Game over:', allQuestionsMatched);
+            console.log('Score:', newScore, 'Correct matches:', correctMatchesCount, 
+                'Total questions:', prev.questions.length, 'Game over:', allQuestionsMatched);
 
             return {
                 ...prev,
@@ -235,7 +259,9 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                 gameOver: allQuestionsMatched
             };
         });
-    }, [gameState.dragging, gameState.questions, gameState.options]);    const handleMouseMove = useCallback((e) => {
+    }, [gameState]);
+
+    const handleMouseMove = useCallback((e) => {
         if (!gameState.dragging || !svgRef.current) return;
         const svgRect = svgRef.current.getBoundingClientRect();
         handleDragMove({
@@ -244,9 +270,11 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         });
     }, [gameState.dragging, handleDragMove]);    const handleTouchMove = useCallback((e) => {
         e.preventDefault();
+        e.stopPropagation();
+        
         if (!gameState.dragging || !svgRef.current) return;
         
-        const touch = e.touches[0] || e.changedTouches[0];
+        const touch = e.touches[0];
         if (!touch) return;
         
         const svgRect = svgRef.current.getBoundingClientRect();
@@ -254,31 +282,50 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             x: Math.max(0, Math.min(touch.clientX - svgRect.left, svgRect.width)),
             y: Math.max(0, Math.min(touch.clientY - svgRect.top, svgRect.height))
         };
-        
+
         // Update the dragging line
-        handleDragMove(point);
+        const line = document.getElementById('draggingLine');
+        if (line) {
+            if (gameState.dragging.fromType === 'option') {
+                line.setAttribute('x1', String(gameState.dragging.startPoint.x));
+                line.setAttribute('y1', String(gameState.dragging.startPoint.y));
+                line.setAttribute('x2', String(point.x));
+                line.setAttribute('y2', String(point.y));
+            } else {
+                line.setAttribute('x1', String(point.x));
+                line.setAttribute('y1', String(point.y));
+                line.setAttribute('x2', String(gameState.dragging.startPoint.x));
+                line.setAttribute('y2', String(gameState.dragging.startPoint.y));
+            }
+        }
         
         // Visual feedback - highlight potential target
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
         if (targetElement) {
             const matchingItem = targetElement.closest('.matching-item');
             if (matchingItem) {
-                // Only highlight valid drop targets (opposite type from what we're dragging)
+                // Check if this is a valid drop target (opposite type and not already matched)
                 const itemType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
-                if (itemType !== gameState.dragging.fromType && !matchingItem.classList.contains('correct')) {
-                    document.querySelectorAll('.matching-item').forEach(item => 
-                        item.classList.remove('touch-hover')
-                    );
+                const isValidTarget = itemType !== gameState.dragging.fromType && 
+                                    !matchingItem.classList.contains('correct') &&
+                                    !matchingItem.classList.contains('incorrect');
+                
+                // Update hover states
+                document.querySelectorAll('.matching-item').forEach(item => 
+                    item.classList.remove('touch-hover')
+                );
+                
+                if (isValidTarget) {
                     matchingItem.classList.add('touch-hover');
                 }
             }
         } else {
-            // Remove highlight if not over a valid target
+            // Remove all hover states if not over any target
             document.querySelectorAll('.matching-item').forEach(item => 
                 item.classList.remove('touch-hover')
             );
         }
-    }, [gameState.dragging, handleDragMove]);
+    }, [gameState.dragging]);
 
     useEffect(() => {
         if (!gameState.dragging) return;
