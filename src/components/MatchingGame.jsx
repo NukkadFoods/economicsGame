@@ -54,77 +54,68 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         initializeGame();
     }, [initializeGame]);
 
-    const handleRestart = () => {
+    const handleRestart = useCallback(() => {
         initializeGame();
-    };
+    }, [initializeGame]);
 
-    const handleDragStart = (e, fromType, id) => {
-        // Prevent dragging if item is already matched
+    const getConnectionPoints = useCallback((item, fromType) => {
+        if (!svgRef.current || !item) return null;
+        const svgRect = svgRef.current.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        
+        return {
+            x: fromType === 'option' ? itemRect.left - svgRect.left : itemRect.right - svgRect.left,
+            y: itemRect.top - svgRect.top + itemRect.height / 2
+        };
+    }, []);
+
+    const handleDragStart = useCallback((e, fromType, id) => {
         const isAlreadyMatched = fromType === 'question' 
             ? gameState.questions.find(q => q.id === id)?.isMatched
             : gameState.options.find(o => o.id === id)?.isMatched;
         
         if (isAlreadyMatched) return;
 
-        const dot = e.target;
-        const dotRect = dot.getBoundingClientRect();
-        const svgRect = svgRef.current.getBoundingClientRect();
-        
-        const startPoint = {
-            x: dotRect.left - svgRect.left + dotRect.width / 2,
-            y: dotRect.top - svgRect.top + dotRect.height / 2
-        };
-        
+        const item = e.target.closest('.matching-item');
+        if (!item) return;
+
+        const startPoint = getConnectionPoints(item, fromType);
+        if (!startPoint) return;
+
         setGameState(prev => ({
             ...prev,
             dragging: { fromType, id, startPoint }
         }));
-    };
+    }, [gameState.questions, gameState.options, getConnectionPoints]);
 
-    const handleDragMove = useCallback((e) => {
+    const handleTouchStart = useCallback((e, fromType, id) => {
+        e.preventDefault(); // Prevent scrolling while dragging
+        const item = e.target.closest('.matching-item');
+        if (!item) return;
+
+        handleDragStart({ target: item }, fromType, id);
+    }, [handleDragStart]);
+
+    const handleDragMove = useCallback((point) => {
         if (!gameState.dragging || !svgRef.current) return;
-
-        const svgRect = svgRef.current.getBoundingClientRect();
-        const currentPoint = {
-            x: Math.max(0, Math.min(e.clientX - svgRect.left, svgRect.width)),
-            y: Math.max(0, Math.min(e.clientY - svgRect.top, svgRect.height))
-        };
-
+        
         const line = document.getElementById('draggingLine');
-        if (line) {
-            if (gameState.dragging.fromType === 'option') {
-                line.setAttribute('x1', gameState.dragging.startPoint.x);
-                line.setAttribute('y1', gameState.dragging.startPoint.y);
-                line.setAttribute('x2', currentPoint.x);
-                line.setAttribute('y2', currentPoint.y);
-            } else {
-                line.setAttribute('x1', currentPoint.x);
-                line.setAttribute('y1', currentPoint.y);
-                line.setAttribute('x2', gameState.dragging.startPoint.x);
-                line.setAttribute('y2', gameState.dragging.startPoint.y);
-            }
+        if (!line) return;
+
+        if (gameState.dragging.fromType === 'option') {
+            line.setAttribute('x1', String(gameState.dragging.startPoint.x));
+            line.setAttribute('y1', String(gameState.dragging.startPoint.y));
+            line.setAttribute('x2', String(point.x));
+            line.setAttribute('y2', String(point.y));
+        } else {
+            line.setAttribute('x1', String(point.x));
+            line.setAttribute('y1', String(point.y));
+            line.setAttribute('x2', String(gameState.dragging.startPoint.x));
+            line.setAttribute('y2', String(gameState.dragging.startPoint.y));
         }
     }, [gameState.dragging]);
 
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (gameState.dragging) {
-                handleDragMove(e);
-            }
-        };
-
-        const handleMouseUp = () => {
-            setGameState(prev => ({ ...prev, dragging: null }));
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [gameState.dragging, handleDragMove]);    const handleDragEnd = useCallback((e, toType, id) => {
+    const handleDragEnd = useCallback((e, toType, id) => {
         if (!gameState.dragging || gameState.dragging.fromType === toType) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
@@ -136,21 +127,19 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         const question = gameState.questions.find(q => q.id === questionId);
         const option = gameState.options.find(o => o.id === optionId);
 
-        if (!question || !option) {
-            setGameState(prev => ({ ...prev, dragging: null }));
-            return;
-        }
-
-        // Check if either item is already matched
-        if (question.isMatched || option.isMatched) {
+        if (!question || !option || question.isMatched || option.isMatched) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
         }
 
         const isCorrect = question.correctAnswer === option.text;
-        const newScore = isCorrect ? gameState.score + 4 : Math.max(0, gameState.score - 1);
         
         setGameState(prev => {
+            // Calculate new score first
+            const scoreChange = isCorrect ? 4 : -1;
+            const newScore = Math.max(0, prev.score + scoreChange);
+
+            // Update questions and options state
             const newQuestions = prev.questions.map(q =>
                 q.id === questionId ? { ...q, isMatched: isCorrect } : q
             );
@@ -159,130 +148,75 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                 o.id === optionId ? { ...o, isMatched: isCorrect } : o
             );
 
+            // Add new connection
             const newConnections = [
                 ...prev.connections,
                 { questionId, optionId, isCorrect }
             ];
 
-            const correctMatches = newConnections.filter(conn => conn.isCorrect).length;
-            const allQuestionsMatched = correctMatches === prev.questions.length;            return {
+            // Calculate game over condition based on correct matches only
+            const correctMatchesCount = newConnections.filter(conn => conn.isCorrect).length;
+            const allQuestionsMatched = correctMatchesCount === prev.questions.length;
+
+            console.log('Score:', newScore, 'Correct matches:', correctMatchesCount, 'Total questions:', prev.questions.length, 'Game over:', allQuestionsMatched);
+
+            return {
                 ...prev,
                 score: newScore,
                 dragging: null,
                 questions: newQuestions,
                 options: newOptions,
-                connections: newConnections,                gameOver: allQuestionsMatched
+                connections: newConnections,
+                gameOver: allQuestionsMatched
             };
         });
-    }, [gameState.dragging, gameState.questions, gameState.options, gameState.score]);
+    }, [gameState.dragging, gameState.questions, gameState.options]);
 
-    const getConnectionPoints = (questionId, optionId) => {
+    const handleMouseMove = useCallback((e) => {
+        if (!gameState.dragging || !svgRef.current) return;
         const svgRect = svgRef.current.getBoundingClientRect();
-        const questionElement = document.getElementById(`question-${questionId}`);
-        const optionElement = document.getElementById(`option-${optionId}`);
-
-        if (!questionElement || !optionElement || !svgRect) return null;
-
-        const questionDot = questionElement.querySelector('.connection-dot.back');
-        const optionDot = optionElement.querySelector('.connection-dot.front');
-
-        if (!questionDot || !optionDot) return null;
-
-        const questionRect = questionDot.getBoundingClientRect();
-        const optionRect = optionDot.getBoundingClientRect();
-
-        return {
-            x1: optionRect.left - svgRect.left + optionRect.width / 2,
-            y1: optionRect.top - svgRect.top + optionRect.height / 2,
-            x2: questionRect.left - svgRect.left + questionRect.width / 2,
-            y2: questionRect.top - svgRect.top + questionRect.height / 2
-        };
-    };
-
-    const getTouchPoint = useCallback((e) => {
-        if (!svgRef.current) return null;
-        const touch = e.touches[0] || e.changedTouches[0];
-        if (!touch) return null;
-        
-        const svgRect = svgRef.current.getBoundingClientRect();
-        return {
-            x: Math.max(0, Math.min(touch.clientX - svgRect.left, svgRect.width)),
-            y: Math.max(0, Math.min(touch.clientY - svgRect.top, svgRect.height))
-        };
-    }, []);
-
-    const handleTouchStart = useCallback((e, fromType, id) => {
-        e.preventDefault(); // Prevent scrolling while dragging
-        const isAlreadyMatched = fromType === 'question' 
-            ? gameState.questions.find(q => q.id === id)?.isMatched
-            : gameState.options.find(o => o.id === id)?.isMatched;
-          if (isAlreadyMatched) return;
-
-        const dot = e.target;
-        const dotRect = dot.getBoundingClientRect();
-        const svgRect = svgRef.current.getBoundingClientRect();
-        
-        const startPoint = {
-            x: dotRect.left - svgRect.left + dotRect.width / 2,
-            y: dotRect.top - svgRect.top + dotRect.height / 2
-        };
-        
-        setGameState(prev => ({
-            ...prev,
-            dragging: { fromType, id, startPoint }
-        }));
-    }, [gameState.questions, gameState.options]);
+        handleDragMove({
+            x: Math.max(0, Math.min(e.clientX - svgRect.left, svgRect.width)),
+            y: Math.max(0, Math.min(e.clientY - svgRect.top, svgRect.height))
+        });
+    }, [gameState.dragging, handleDragMove]);
 
     const handleTouchMove = useCallback((e) => {
-        e.preventDefault(); // Prevent scrolling while dragging
-        if (!gameState.dragging) return;
-
-        const currentPoint = getTouchPoint(e);
-        if (!currentPoint) return;
-
-        const line = document.getElementById('draggingLine');
-        if (line) {
-            if (gameState.dragging.fromType === 'option') {
-                line.setAttribute('x1', gameState.dragging.startPoint.x.toString());
-                line.setAttribute('y1', gameState.dragging.startPoint.y.toString());
-                line.setAttribute('x2', currentPoint.x.toString());
-                line.setAttribute('y2', currentPoint.y.toString());
-            } else {
-                line.setAttribute('x1', currentPoint.x.toString());
-                line.setAttribute('y1', currentPoint.y.toString());
-                line.setAttribute('x2', gameState.dragging.startPoint.x.toString());
-                line.setAttribute('y2', gameState.dragging.startPoint.y.toString());
-            }
-        }
-    }, [gameState.dragging, getTouchPoint]);
-
-    const handleTouchEnd = useCallback((e, toType, id) => {
         e.preventDefault();
-        handleDragEnd(e, toType, id);
-    }, [handleDragEnd]);
+        if (!gameState.dragging || !svgRef.current) return;
+        
+        const touch = e.touches[0] || e.changedTouches[0];
+        if (!touch) return;
+        
+        const svgRect = svgRef.current.getBoundingClientRect();
+        handleDragMove({
+            x: Math.max(0, Math.min(touch.clientX - svgRect.left, svgRect.width)),
+            y: Math.max(0, Math.min(touch.clientY - svgRect.top, svgRect.height))
+        });
+    }, [gameState.dragging, handleDragMove]);
 
     useEffect(() => {
-        const handleDocumentTouchMove = (e) => {
-            if (gameState.dragging) {
-                handleTouchMove(e);
-            }
-        };
+        if (!gameState.dragging) return;
+        
+        const handleGlobalMouseMove = (e) => handleMouseMove(e);
+        const handleGlobalMouseUp = () => setGameState(prev => ({ ...prev, dragging: null }));
+        const handleGlobalTouchMove = (e) => handleTouchMove(e);
+        const handleGlobalTouchEnd = () => setGameState(prev => ({ ...prev, dragging: null }));
 
-        const handleDocumentTouchEnd = () => {
-            setGameState(prev => ({ ...prev, dragging: null }));
-        };
-
-        // Add touch event listeners
-        document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
-        document.addEventListener('touchend', handleDocumentTouchEnd);
-        document.addEventListener('touchcancel', handleDocumentTouchEnd);
+        document.addEventListener('mousemove', handleGlobalMouseMove);
+        document.addEventListener('mouseup', handleGlobalMouseUp);
+        document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+        document.addEventListener('touchend', handleGlobalTouchEnd);
+        document.addEventListener('touchcancel', handleGlobalTouchEnd);
 
         return () => {
-            document.removeEventListener('touchmove', handleDocumentTouchMove);
-            document.removeEventListener('touchend', handleDocumentTouchEnd);
-            document.removeEventListener('touchcancel', handleDocumentTouchEnd);
+            document.removeEventListener('mousemove', handleGlobalMouseMove);
+            document.removeEventListener('mouseup', handleGlobalMouseUp);
+            document.removeEventListener('touchmove', handleGlobalTouchMove);
+            document.removeEventListener('touchend', handleGlobalTouchEnd);
+            document.removeEventListener('touchcancel', handleGlobalTouchEnd);
         };
-    }, [gameState.dragging, handleTouchMove]);
+    }, [gameState.dragging, handleMouseMove, handleTouchMove]);
 
     return (
         <div className="matching-game">
@@ -302,27 +236,25 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             ) : (
                 <div className="matching-container">
                     <div className="column questions">
-                        {gameState.questions.map((item, index) => {                            const connection = gameState.connections.find(conn => conn.questionId === item.id);
-                            const className = connection
-                                ? connection.isCorrect ? 'correct' : 'incorrect'
-                                : '';
+                        {gameState.questions.map((item, index) => {
+                            const connection = gameState.connections.find(conn => conn.questionId === item.id);
+                            const className = connection ? (connection.isCorrect ? 'correct' : 'incorrect') : '';
                             
                             return (
                                 <div
                                     id={`question-${item.id}`}
-                                    key={item.id}                                    className={`matching-item ${className}`}
+                                    key={item.id}
+                                    className={`matching-item ${className}`}
+                                    onMouseDown={(e) => handleDragStart(e, 'question', item.id)}
                                     onMouseUp={(e) => handleDragEnd(e, 'question', item.id)}
-                                    onTouchEnd={(e) => handleTouchEnd(e, 'question', item.id)}
+                                    onTouchStart={(e) => handleTouchStart(e, 'question', item.id)}
+                                    onTouchEnd={(e) => handleDragEnd(e, 'question', item.id)}
                                 >
                                     <div className="item-content">
                                         <span className="item-number">{index + 1}.</span>
                                         {item.question}
                                     </div>
-                                    <span 
-                                        className="connection-dot back"
-                                        onMouseDown={(e) => handleDragStart(e, 'question', item.id)}
-                                        onTouchStart={(e) => handleTouchStart(e, 'question', item.id)}
-                                    ></span>
+                                    <span className="connection-dot back"></span>
                                 </div>
                             );
                         })}
@@ -330,41 +262,53 @@ const MatchingGame = ({ subject, onBackToHome }) => {
 
                     <svg ref={svgRef} className="connections-svg">
                         {gameState.connections.map(conn => {
-                            const points = getConnectionPoints(conn.questionId, conn.optionId);
-                            return points && (
+                            const questionEl = document.getElementById(`question-${conn.questionId}`);
+                            const optionEl = document.getElementById(`option-${conn.optionId}`);
+                            if (!questionEl || !optionEl) return null;
+                            
+                            const startPoint = getConnectionPoints(optionEl, 'option');
+                            const endPoint = getConnectionPoints(questionEl, 'question');
+                            if (!startPoint || !endPoint) return null;
+
+                            return (
                                 <line
                                     key={`${conn.questionId}-${conn.optionId}`}
-                                    {...points}
+                                    x1={startPoint.x}
+                                    y1={startPoint.y}
+                                    x2={endPoint.x}
+                                    y2={endPoint.y}
                                     className={`connection-line ${conn.isCorrect ? 'correct' : 'incorrect'}`}
                                 />
                             );
                         })}
                         {gameState.dragging && (
                             <line 
-                                id="draggingLine" 
+                                id="draggingLine"
                                 className="connection-line dragging"
+                                x1="0"
+                                y1="0"
+                                x2="0"
+                                y2="0"
                             />
                         )}
                     </svg>
 
                     <div className="column options">
-                        {gameState.options.map((item) => {                            const connection = gameState.connections.find(conn => conn.optionId === item.id);
-                            const className = connection
-                                ? connection.isCorrect ? 'correct' : 'incorrect'
-                                : '';
+                        {gameState.options.map((item) => {
+                            const connection = gameState.connections.find(conn => conn.optionId === item.id);
+                            const className = connection ? (connection.isCorrect ? 'correct' : 'incorrect') : '';
                             
                             return (
                                 <div
                                     id={`option-${item.id}`}
-                                    key={item.id}                                    className={`matching-item option-item ${className}`}
+                                    key={item.id}
+                                    className={`matching-item option-item ${className}`}
+                                    onMouseDown={(e) => handleDragStart(e, 'option', item.id)}
                                     onMouseUp={(e) => handleDragEnd(e, 'option', item.id)}
-                                    onTouchEnd={(e) => handleTouchEnd(e, 'option', item.id)}
+                                    onTouchStart={(e) => handleTouchStart(e, 'option', item.id)}
+                                    onTouchEnd={(e) => handleDragEnd(e, 'option', item.id)}
                                 >
-                                    <span 
-                                        className="connection-dot front"
-                                        onMouseDown={(e) => handleDragStart(e, 'option', item.id)}
-                                        onTouchStart={(e) => handleTouchStart(e, 'option', item.id)}
-                                    ></span>
+                                    <span className="connection-dot front"></span>
                                     <div className="item-content">
                                         {item.text}
                                     </div>

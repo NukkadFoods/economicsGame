@@ -137,20 +137,19 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         const question = gameState.questions.find(q => q.id === questionId);
         const option = gameState.options.find(o => o.id === optionId);
 
-        if (!question || !option) {
-            setGameState(prev => ({ ...prev, dragging: null }));
-            return;
-        }
-
-        if (question.isMatched || option.isMatched) {
+        if (!question || !option || question.isMatched || option.isMatched) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
         }
 
         const isCorrect = question.correctAnswer === option.text;
-        const newScore = isCorrect ? gameState.score + 4 : Math.max(0, gameState.score - 1);
         
         setGameState(prev => {
+            // Calculate new score first
+            const scoreChange = isCorrect ? 4 : -1;
+            const newScore = Math.max(0, prev.score + scoreChange);
+
+            // Update questions and options state
             const newQuestions = prev.questions.map(q =>
                 q.id === questionId ? { ...q, isMatched: isCorrect } : q
             );
@@ -159,13 +158,17 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                 o.id === optionId ? { ...o, isMatched: isCorrect } : o
             );
 
+            // Add new connection
             const newConnections = [
                 ...prev.connections,
                 { questionId, optionId, isCorrect }
             ];
 
-            const correctMatches = newConnections.filter(conn => conn.isCorrect).length;
-            const allQuestionsMatched = correctMatches === prev.questions.length;
+            // Calculate game over condition based on correct matches only
+            const correctMatchesCount = newConnections.filter(conn => conn.isCorrect).length;
+            const allQuestionsMatched = correctMatchesCount === prev.questions.length;
+
+            console.log('Score:', newScore, 'Correct matches:', correctMatchesCount, 'Total questions:', prev.questions.length, 'Game over:', allQuestionsMatched);
 
             return {
                 ...prev,
