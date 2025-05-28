@@ -97,6 +97,34 @@
         transform: scale(1.3);
         background: rgba(255, 255, 255, 0.9);
     }
+
+    .matching-item {
+        touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .connection-dot {
+        width: 24px;  /* Larger touch target */
+        height: 24px;
+    }
+
+    .matching-item.touch-hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        border-color: #2196F3;
+        background: rgba(33, 150, 243, 0.1);
+    }
+
+    .matching-item.dragging {
+        opacity: 0.8;
+    }
+
+    /* Prevent text selection during drag */
+    .matching-container {
+        user-select: none;
+        -webkit-user-select: none;
+    }
 }
 
 /* Prevent scrolling on mobile when playing */
