@@ -48,36 +48,14 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             score: 0,
             gameOver: false
         }));
-    }, [subject]);    // Initialize game on mount or subject change    
+    }, [subject]);
+
     useEffect(() => {
         initializeGame();
     }, [initializeGame]);
 
     const handleRestart = () => {
         initializeGame();
-    };
-
-    const handleDragStart = (e, fromType, id) => {
-        // Prevent dragging if item is already matched
-        const isAlreadyMatched = fromType === 'question' 
-            ? gameState.questions.find(q => q.id === id)?.isMatched
-            : gameState.options.find(o => o.id === id)?.isMatched;
-        
-        if (isAlreadyMatched) return;
-
-        const dot = e.target;
-        const dotRect = dot.getBoundingClientRect();
-        const svgRect = svgRef.current.getBoundingClientRect();
-        
-        const startPoint = {
-            x: dotRect.left - svgRect.left + dotRect.width / 2,
-            y: dotRect.top - svgRect.top + dotRect.height / 2
-        };
-        
-        setGameState(prev => ({
-            ...prev,
-            dragging: { fromType, id, startPoint }
-        }));
     };
 
     const handleDragMove = useCallback((e) => {
@@ -125,6 +103,28 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         };
     }, [gameState.dragging, handleDragMove]);
 
+    const handleDragStart = (e, fromType, id) => {
+        const isAlreadyMatched = fromType === 'question' 
+            ? gameState.questions.find(q => q.id === id)?.isMatched
+            : gameState.options.find(o => o.id === id)?.isMatched;
+        
+        if (isAlreadyMatched) return;
+
+        const dot = e.target;
+        const dotRect = dot.getBoundingClientRect();
+        const svgRect = svgRef.current.getBoundingClientRect();
+        
+        const startPoint = {
+            x: dotRect.left - svgRect.left + dotRect.width / 2,
+            y: dotRect.top - svgRect.top + dotRect.height / 2
+        };
+        
+        setGameState(prev => ({
+            ...prev,
+            dragging: { fromType, id, startPoint }
+        }));
+    };
+
     const handleDragEnd = (e, toType, id) => {
         if (!gameState.dragging || gameState.dragging.fromType === toType) {
             setGameState(prev => ({ ...prev, dragging: null }));
@@ -142,7 +142,6 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             return;
         }
 
-        // Check if either item is already matched
         if (question.isMatched || option.isMatched) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
@@ -201,7 +200,9 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             x2: questionRect.left - svgRect.left + questionRect.width / 2,
             y2: questionRect.top - svgRect.top + questionRect.height / 2
         };
-    };return (
+    };
+
+    return (
         <div className="matching-game">
             <button className="back-to-home-btn" onClick={onBackToHome}>
                 <span className="home-icon">←</span>
@@ -219,7 +220,8 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             ) : (
                 <div className="matching-container">
                     <div className="column questions">
-                        {gameState.questions.map((item, index) => {                            const connection = gameState.connections.find(conn => conn.questionId === item.id);
+                        {gameState.questions.map((item, index) => {
+                            const connection = gameState.connections.find(conn => conn.questionId === item.id);
                             const className = connection
                                 ? connection.isCorrect ? 'correct' : 'incorrect'
                                 : '';
@@ -257,14 +259,15 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                         })}
                         {gameState.dragging && (
                             <line 
-                                id="draggingLine" 
+                                id="draggingLine"
                                 className="connection-line dragging"
                             />
                         )}
                     </svg>
 
                     <div className="column options">
-                        {gameState.options.map((item) => {                            const connection = gameState.connections.find(conn => conn.optionId === item.id);
+                        {gameState.options.map((item) => {
+                            const connection = gameState.connections.find(conn => conn.optionId === item.id);
                             const className = connection
                                 ? connection.isCorrect ? 'correct' : 'incorrect'
                                 : '';
@@ -273,7 +276,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                                 <div
                                     id={`option-${item.id}`}
                                     key={item.id}
-                                    className={`matching-item option-item ${className}`}
+                                    className={`option-item ${className}`}
                                     onMouseUp={(e) => handleDragEnd(e, 'option', item.id)}
                                 >
                                     <span 
