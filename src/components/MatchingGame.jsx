@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { questionsBySubject } from '../data/allQuestions';
 import ScoreDisplay from './ScoreDisplay';
 import GameOver from './GameOver';
+import '../styles/matching-game.css';
 
 const MatchingGame = ({ subject, onBackToHome }) => {
     const [gameState, setGameState] = useState({
@@ -123,9 +124,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [gameState.dragging, handleDragMove]);
-
-    const handleDragEnd = (e, toType, id) => {
+    }, [gameState.dragging, handleDragMove]);    const handleDragEnd = useCallback((e, toType, id) => {
         if (!gameState.dragging || gameState.dragging.fromType === toType) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
@@ -166,19 +165,16 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             ];
 
             const correctMatches = newConnections.filter(conn => conn.isCorrect).length;
-            const allQuestionsMatched = correctMatches === prev.questions.length;
-
-            return {
+            const allQuestionsMatched = correctMatches === prev.questions.length;            return {
                 ...prev,
                 score: newScore,
                 dragging: null,
                 questions: newQuestions,
                 options: newOptions,
-                connections: newConnections,
-                gameOver: allQuestionsMatched
+                connections: newConnections,                gameOver: allQuestionsMatched
             };
         });
-    };
+    }, [gameState.dragging, gameState.questions, gameState.options, gameState.score]);
 
     const getConnectionPoints = (questionId, optionId) => {
         const svgRect = svgRef.current.getBoundingClientRect();
@@ -201,7 +197,94 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             x2: questionRect.left - svgRect.left + questionRect.width / 2,
             y2: questionRect.top - svgRect.top + questionRect.height / 2
         };
-    };return (
+    };
+
+    const getTouchPoint = useCallback((e) => {
+        if (!svgRef.current) return null;
+        const touch = e.touches[0] || e.changedTouches[0];
+        if (!touch) return null;
+        
+        const svgRect = svgRef.current.getBoundingClientRect();
+        return {
+            x: Math.max(0, Math.min(touch.clientX - svgRect.left, svgRect.width)),
+            y: Math.max(0, Math.min(touch.clientY - svgRect.top, svgRect.height))
+        };
+    }, []);
+
+    const handleTouchStart = useCallback((e, fromType, id) => {
+        e.preventDefault(); // Prevent scrolling while dragging
+        const isAlreadyMatched = fromType === 'question' 
+            ? gameState.questions.find(q => q.id === id)?.isMatched
+            : gameState.options.find(o => o.id === id)?.isMatched;
+          if (isAlreadyMatched) return;
+
+        const dot = e.target;
+        const dotRect = dot.getBoundingClientRect();
+        const svgRect = svgRef.current.getBoundingClientRect();
+        
+        const startPoint = {
+            x: dotRect.left - svgRect.left + dotRect.width / 2,
+            y: dotRect.top - svgRect.top + dotRect.height / 2
+        };
+        
+        setGameState(prev => ({
+            ...prev,
+            dragging: { fromType, id, startPoint }
+        }));
+    }, [gameState.questions, gameState.options]);
+
+    const handleTouchMove = useCallback((e) => {
+        e.preventDefault(); // Prevent scrolling while dragging
+        if (!gameState.dragging) return;
+
+        const currentPoint = getTouchPoint(e);
+        if (!currentPoint) return;
+
+        const line = document.getElementById('draggingLine');
+        if (line) {
+            if (gameState.dragging.fromType === 'option') {
+                line.setAttribute('x1', gameState.dragging.startPoint.x.toString());
+                line.setAttribute('y1', gameState.dragging.startPoint.y.toString());
+                line.setAttribute('x2', currentPoint.x.toString());
+                line.setAttribute('y2', currentPoint.y.toString());
+            } else {
+                line.setAttribute('x1', currentPoint.x.toString());
+                line.setAttribute('y1', currentPoint.y.toString());
+                line.setAttribute('x2', gameState.dragging.startPoint.x.toString());
+                line.setAttribute('y2', gameState.dragging.startPoint.y.toString());
+            }
+        }
+    }, [gameState.dragging, getTouchPoint]);
+
+    const handleTouchEnd = useCallback((e, toType, id) => {
+        e.preventDefault();
+        handleDragEnd(e, toType, id);
+    }, [handleDragEnd]);
+
+    useEffect(() => {
+        const handleDocumentTouchMove = (e) => {
+            if (gameState.dragging) {
+                handleTouchMove(e);
+            }
+        };
+
+        const handleDocumentTouchEnd = () => {
+            setGameState(prev => ({ ...prev, dragging: null }));
+        };
+
+        // Add touch event listeners
+        document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
+        document.addEventListener('touchend', handleDocumentTouchEnd);
+        document.addEventListener('touchcancel', handleDocumentTouchEnd);
+
+        return () => {
+            document.removeEventListener('touchmove', handleDocumentTouchMove);
+            document.removeEventListener('touchend', handleDocumentTouchEnd);
+            document.removeEventListener('touchcancel', handleDocumentTouchEnd);
+        };
+    }, [gameState.dragging, handleTouchMove]);
+
+    return (
         <div className="matching-game">
             <button className="back-to-home-btn" onClick={onBackToHome}>
                 <span className="home-icon">←</span>
@@ -227,9 +310,9 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                             return (
                                 <div
                                     id={`question-${item.id}`}
-                                    key={item.id}
-                                    className={`matching-item ${className}`}
+                                    key={item.id}                                    className={`matching-item ${className}`}
                                     onMouseUp={(e) => handleDragEnd(e, 'question', item.id)}
+                                    onTouchEnd={(e) => handleTouchEnd(e, 'question', item.id)}
                                 >
                                     <div className="item-content">
                                         <span className="item-number">{index + 1}.</span>
@@ -238,6 +321,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                                     <span 
                                         className="connection-dot back"
                                         onMouseDown={(e) => handleDragStart(e, 'question', item.id)}
+                                        onTouchStart={(e) => handleTouchStart(e, 'question', item.id)}
                                     ></span>
                                 </div>
                             );
@@ -272,13 +356,14 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                             return (
                                 <div
                                     id={`option-${item.id}`}
-                                    key={item.id}
-                                    className={`matching-item option-item ${className}`}
+                                    key={item.id}                                    className={`matching-item option-item ${className}`}
                                     onMouseUp={(e) => handleDragEnd(e, 'option', item.id)}
+                                    onTouchEnd={(e) => handleTouchEnd(e, 'option', item.id)}
                                 >
                                     <span 
                                         className="connection-dot front"
                                         onMouseDown={(e) => handleDragStart(e, 'option', item.id)}
+                                        onTouchStart={(e) => handleTouchStart(e, 'option', item.id)}
                                     ></span>
                                     <div className="item-content">
                                         {item.text}

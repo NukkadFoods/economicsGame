@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 const HomePage = ({ onStartGame }) => {
     const [selectedSubject, setSelectedSubject] = useState('accounts');
@@ -30,7 +31,7 @@ const HomePage = ({ onStartGame }) => {
                     <div className="game-type-selection">
                         <h2>Select Game Type</h2>
                         <div className="game-types">
-                            {gameTypes.map(type => (
+                            {gameTypes.map((type) => (
                                 <div
                                     key={type.id}
                                     className={`game-type-card ${selectedGameType === type.id ? 'selected' : ''}`}
@@ -41,11 +42,9 @@ const HomePage = ({ onStartGame }) => {
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    <div className="subject-selection">
+                    </div>                    <div className="subject-selection">
                         <h2>Select Subject</h2>
-                        {subjects.map(subject => (
+                        {subjects.map((subject) => (
                             <div
                                 key={subject.id}
                                 className={`subject-card ${selectedSubject === subject.id ? 'selected' : ''}`}
@@ -109,6 +108,10 @@ const HomePage = ({ onStartGame }) => {
             </div>
         </div>
     );
+};
+
+HomePage.propTypes = {
+    onStartGame: PropTypes.func.isRequired
 };
 
 export default HomePage;
