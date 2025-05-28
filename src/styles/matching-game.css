@@ -86,44 +86,52 @@
     background: rgba(244, 67, 54, 0.2);
 }
 
-/* Add touch feedback */
+/* Enhanced touch styles */
 @media (hover: none) {
-    .matching-item:active {
-        transform: scale(1.02);
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    .connection-dot:active {
-        transform: scale(1.3);
-        background: rgba(255, 255, 255, 0.9);
-    }
-
     .matching-item {
         touch-action: none;
         -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
+        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
     }
 
     .connection-dot {
-        width: 24px;  /* Larger touch target */
-        height: 24px;
+        width: 28px;  /* Even larger touch target */
+        height: 28px;
+        transition: transform 0.2s, background-color 0.2s;
     }
 
     .matching-item.touch-hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-        border-color: #2196F3;
-        background: rgba(33, 150, 243, 0.1);
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(33, 150, 243, 0.4);
+        border: 2px solid #2196F3;
+        background-color: rgba(33, 150, 243, 0.15);
     }
 
     .matching-item.dragging {
         opacity: 0.8;
+        transform: scale(0.98);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
 
-    /* Prevent text selection during drag */
+    .matching-item.dragging .connection-dot {
+        transform: scale(1.2);
+        background-color: #2196F3;
+    }
+
+    /* Enhanced touch feedback */
+    .connection-dot:active {
+        transform: scale(1.3);
+        background-color: #2196F3;
+    }
+
+    /* Prevent scrolling and selections */
     .matching-container {
+        touch-action: none;
         user-select: none;
         -webkit-user-select: none;
+        overflow: hidden;
+        height: 100%;
     }
 }
 

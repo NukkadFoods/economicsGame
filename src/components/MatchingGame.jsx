@@ -96,14 +96,23 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         }));
     }, [gameState.questions, gameState.options, getConnectionPoints]);    const handleTouchStart = useCallback((e, fromType, id) => {
         e.preventDefault(); // Prevent scrolling while dragging
+        e.stopPropagation(); // Stop event bubbling
+        
         const touch = e.touches[0] || e.changedTouches[0];
         if (!touch) return;
 
         const item = e.target.closest('.matching-item');
         if (!item) return;
 
+        // Don't start drag if item is already matched correctly
+        const isMatched = item.classList.contains('correct');
+        if (isMatched) return;
+
         const dot = item.querySelector(`.connection-dot.${fromType === 'option' ? 'front' : 'back'}`);
         if (!dot) return;
+
+        // Add dragging class to the item
+        item.classList.add('dragging');
 
         // Create a synthetic event with client coordinates from the touch
         const syntheticEvent = {
@@ -133,6 +142,11 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             line.setAttribute('y2', String(gameState.dragging.startPoint.y));
         }
     }, [gameState.dragging]);    const handleDragEnd = useCallback((e, toType, id) => {
+        // Remove any touch-hover classes first
+        document.querySelectorAll('.matching-item').forEach(item => 
+            item.classList.remove('touch-hover')
+        );
+
         if (!gameState.dragging || gameState.dragging.fromType === toType) {
             setGameState(prev => ({ ...prev, dragging: null }));
             return;
@@ -146,10 +160,29 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                 if (targetElement) {
                     const matchingItem = targetElement.closest('.matching-item');
                     if (matchingItem) {
-                        id = matchingItem.id.split('-')[1];
-                        toType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
+                        // Get the opposite type from what we started dragging
+                        const expectedType = gameState.dragging.fromType === 'question' ? 'option' : 'question';
+                        const actualType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
+                        
+                        // Only proceed if we're dropping on the correct type
+                        if (actualType === expectedType) {
+                            id = matchingItem.id.split('-')[1];
+                            toType = actualType;
+                        } else {
+                            setGameState(prev => ({ ...prev, dragging: null }));
+                            return;
+                        }
+                    } else {
+                        setGameState(prev => ({ ...prev, dragging: null }));
+                        return;
                     }
+                } else {
+                    setGameState(prev => ({ ...prev, dragging: null }));
+                    return;
                 }
+            } else {
+                setGameState(prev => ({ ...prev, dragging: null }));
+                return;
             }
         }
 
@@ -209,9 +242,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             x: Math.max(0, Math.min(e.clientX - svgRect.left, svgRect.width)),
             y: Math.max(0, Math.min(e.clientY - svgRect.top, svgRect.height))
         });
-    }, [gameState.dragging, handleDragMove]);
-
-    const handleTouchMove = useCallback((e) => {
+    }, [gameState.dragging, handleDragMove]);    const handleTouchMove = useCallback((e) => {
         e.preventDefault();
         if (!gameState.dragging || !svgRef.current) return;
         
@@ -232,11 +263,20 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         if (targetElement) {
             const matchingItem = targetElement.closest('.matching-item');
             if (matchingItem) {
-                document.querySelectorAll('.matching-item').forEach(item => 
-                    item.classList.remove('touch-hover')
-                );
-                matchingItem.classList.add('touch-hover');
+                // Only highlight valid drop targets (opposite type from what we're dragging)
+                const itemType = matchingItem.classList.contains('option-item') ? 'option' : 'question';
+                if (itemType !== gameState.dragging.fromType && !matchingItem.classList.contains('correct')) {
+                    document.querySelectorAll('.matching-item').forEach(item => 
+                        item.classList.remove('touch-hover')
+                    );
+                    matchingItem.classList.add('touch-hover');
+                }
             }
+        } else {
+            // Remove highlight if not over a valid target
+            document.querySelectorAll('.matching-item').forEach(item => 
+                item.classList.remove('touch-hover')
+            );
         }
     }, [gameState.dragging, handleDragMove]);
 
