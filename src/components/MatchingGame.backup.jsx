@@ -49,19 +49,100 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             score: 0,
             gameOver: false
         }));
-    }, [subject]);    // Initialize game on mount or subject change
+    }, [subject]);
+
+    // Initialize game on mount or subject change
     useEffect(() => {
         initializeGame();
     }, [initializeGame]);
 
-    const handleRestart = () => {
+    const handleRestart = useCallback(() => {
         initializeGame();
-    };
+    }, [initializeGame]);
 
-    const getConnectionPoints = useCallback((item, fromType) => {        if (!svgRef.current || !item) return null;
+    const getConnectionPoints = useCallback((item, fromType) => {
+        if (!svgRef.current || !item) return null;
+        const svgRect = svgRef.current.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        const dot = item.querySelector(`.connection-dot.${fromType === 'option' ? 'front' : 'back'}`);
+        const dotRect = dot ? dot.getBoundingClientRect() : itemRect;
+        
+        // Get scroll position to account for page scroll
+        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Adjust coordinates with scroll position and SVG position
+        return {
+            x: fromType === 'option' 
+                ? (dotRect.left + scrollX - svgRect.left + dotRect.width / 2)
+                : (dotRect.right + scrollX - svgRect.left - dotRect.width / 2),
+            y: dotRect.top + scrollY - svgRect.top + dotRect.height / 2
+        };    }, []);
+
+    const handleDragStart = useCallback((e, fromType, id) => {
+        const isAlreadyMatched = fromType === 'question' 
+            ? gameState.questions.find(q => q.id === id)?.isMatched
+            : gameState.options.find(o => o.id === id)?.isMatched;
+        
+        if (isAlreadyMatched) return;
+
+        const item = e.target.closest('.matching-item');
+        if (!item) return;
+
+        // Add active state class
+        item.classList.add('dragging');
+
+        const startPoint = getConnectionPoints(item, fromType);
+        if (!startPoint) return;
+
+        setGameState(prev => ({
+            ...prev,
+            dragging: { fromType, id, startPoint }
+        }));
+        
+        if (!allQuestions || !Array.isArray(allQuestions)) {
+            console.error('No valid questions found for subject:', subject);
+            return;
+        }
+
+        // Randomly select 8 questions
+        const shuffledQuestions = [...allQuestions].sort(() => Math.random() - 0.5);
+        const selectedQuestions = shuffledQuestions.slice(0, 8).map((q, index) => ({
+            id: index,
+            question: q.question,
+            correctAnswer: q.options[q.correct !== undefined ? q.correct : q.correctOption],
+            isMatched: false
+        }));
+
+        // Create and shuffle options
+        const shuffledOptions = selectedQuestions.map((q, index) => ({
+            id: index,
+            text: q.correctAnswer,
+            isMatched: false
+        })).sort(() => Math.random() - 0.5);
+
+        setGameState(prev => ({
+            ...prev,
+            questions: selectedQuestions,
+            options: shuffledOptions,
+            connections: [],
+            score: 0,
+            gameOver: false
+        }));
+    }, [subject]);    // Initialize game on mount or subject change    
+    useEffect(() => {
+        initializeGame();
+    }, [initializeGame]);
+
+    const handleRestart = useCallback(() => {
+        initializeGame();
+    }, [initializeGame]);    const getConnectionPoints = useCallback((item, fromType) => {
+        if (!svgRef.current || !item) return null;
+        
         const container = document.querySelector('.matching-container');
         if (!container) return null;
 
+        const svgRect = svgRef.current.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const itemRect = item.getBoundingClientRect();
         const dot = item.querySelector(`.connection-dot.${fromType === 'option' ? 'front' : 'back'}`);
@@ -93,19 +174,17 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         const dot = item.querySelector(`.connection-dot.${fromType === 'option' ? 'front' : 'back'}`);
         if (!dot) return;
 
-        // Add active state class
-        item.classList.add('dragging');
-
         const startPoint = getConnectionPoints(item, fromType);
         if (!startPoint) return;
+
+        // Add active state class
+        item.classList.add('dragging');
 
         setGameState(prev => ({
             ...prev,
             dragging: { fromType, id, startPoint }
         }));
-    }, [gameState.questions, gameState.options, getConnectionPoints]);    
-
-    const handleTouchStart = useCallback((e, fromType, id) => {
+    }, [gameState.questions, gameState.options, getConnectionPoints]);    const handleTouchStart = useCallback((e, fromType, id) => {
         e.preventDefault(); // Prevent scrolling while dragging
         e.stopPropagation(); // Stop event bubbling
         
@@ -125,18 +204,23 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         item.classList.add('dragging');
 
         // Get the starting point for the line
-        const startPoint = getConnectionPoints(item, fromType);
-        if (!startPoint) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        const touchX = dot.offsetLeft + dot.offsetWidth / 2;
+        const touchY = dot.offsetTop + dot.offsetHeight / 2;
 
+        // Set dragging state with the correct starting point
         setGameState(prev => ({
             ...prev,
             dragging: {
                 fromType,
                 id,
-                startPoint
+                startPoint: {
+                    x: touchX - rect.left,
+                    y: touchY - rect.top
+                }
             }
         }));
-    }, [getConnectionPoints]);
+    }, []);
 
     const handleDragMove = useCallback((point) => {
         if (!gameState.dragging || !svgRef.current) return;
@@ -155,9 +239,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
             line.setAttribute('x2', String(gameState.dragging.startPoint.x));
             line.setAttribute('y2', String(gameState.dragging.startPoint.y));
         }
-    }, [gameState.dragging]);    
-
-    const handleDragEnd= useCallback((e, toType, id) => {
+    }, [gameState.dragging]);    const handleDragEnd = useCallback((e, toType, id) => {
         // Remove hover and dragging classes
         document.querySelectorAll('.matching-item').forEach(item => {
             item.classList.remove('touch-hover', 'dragging');
