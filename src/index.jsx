@@ -4,6 +4,7 @@ import App from './App';
 import './styles/index.css';
 import './styles/animations.css';
 import './styles/components.css';
+import './styles/home-page.css';
 
 const container = document.getElementById('root');
 const root = createRoot(container);
