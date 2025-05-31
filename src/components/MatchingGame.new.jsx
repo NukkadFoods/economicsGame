@@ -14,6 +14,8 @@ const MatchingGame = ({ subject, onBackToHome }) => {
     });
     
     const svgRef = useRef(null);
+    const questionRefs = useRef([]);
+    const [questionWidths, setQuestionWidths] = useState([]);
 
     const initializeGame = useCallback(() => {
         const selectedSubject = subject || 'accounts';
@@ -205,6 +207,15 @@ const MatchingGame = ({ subject, onBackToHome }) => {
         };
     };
 
+    useEffect(() => {
+        // After questions render, measure their widths
+        if (questionRefs.current.length) {
+            setQuestionWidths(
+                questionRefs.current.map(ref => ref ? ref.offsetWidth : 0)
+            );
+        }
+    }, [gameState.questions, gameState.options, gameState.connections]);
+
     return (
         <div className="matching-game">
             <button className="back-to-home-btn" onClick={onBackToHome}>
@@ -234,6 +245,7 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                                     id={`question-${item.id}`}
                                     key={item.id}
                                     className={`matching-item ${className}`}
+                                    ref={el => questionRefs.current[index] = el}
                                     onMouseUp={(e) => handleDragEnd(e, 'question', item.id)}
                                 >
                                     <div className="item-content">
@@ -269,17 +281,19 @@ const MatchingGame = ({ subject, onBackToHome }) => {
                     </svg>
 
                     <div className="column options">
-                        {gameState.options.map((item) => {
+                        {gameState.options.map((item, index) => {
                             const connection = gameState.connections.find(conn => conn.optionId === item.id);
                             const className = connection
                                 ? connection.isCorrect ? 'correct' : 'incorrect'
                                 : '';
-                            
+                            // Set width to match the parallel question
+                            const style = questionWidths[index] ? { width: questionWidths[index] } : {};
                             return (
                                 <div
                                     id={`option-${item.id}`}
                                     key={item.id}
                                     className={`option-item ${className}`}
+                                    style={style}
                                     onMouseUp={(e) => handleDragEnd(e, 'option', item.id)}
                                 >
                                     <span 

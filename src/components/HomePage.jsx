@@ -14,7 +14,8 @@ const HomePage = ({ onStartGame }) => {
 
     const gameTypes = [
         { id: 'bubble', name: 'Bubble Pop', description: 'Pop the correct answer bubbles as they fall' },
-        { id: 'dragdrop', name: 'Pick & Drop', description: 'Match pairs by dragging and dropping' }
+        { id: 'dragdrop', name: 'Pick & Drop', description: 'Match pairs by dragging and dropping' },
+        { id: 'escape', name: 'Escape Room', description: 'Solve accounting puzzles to escape each room' }
     ];
 
     const handleStartGame = () => {

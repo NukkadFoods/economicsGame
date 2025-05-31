@@ -1,0 +1,573 @@
+/* Account Types Room */
+.account-types-room {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.accounts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.account-slot {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.account-slot.dragging {
+    background-color: #e3f2fd;
+}
+
+.account-name {
+    flex: 1;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+.account-type-box {
+    width: 180px;
+    height: 45px;
+    border: 2px dashed #90caf9;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffffff;
+    color: #666;
+    font-size: 1em;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.account-type-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #e3f2fd;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: -1;
+}
+
+.account-type-box.drag-over::before {
+    opacity: 1;
+}
+
+.account-type-box.filled {
+    border-style: solid;
+    border-color: #2196F3;
+    background-color: #e3f2fd;
+    color: #1976D2;
+    font-weight: 500;
+}
+
+.account-type-box.drag-over {
+    border-style: solid;
+    border-color: #4CAF50;
+    background-color: #E8F5E9;
+    transform: scale(1.02);
+}
+
+.types-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    background-color: #f0f7ff;
+    border-radius: 12px;
+    margin-top: -5px;
+    border: 2px solid #e3f2fd;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.account-type {
+    background: linear-gradient(45deg, #2196F3, #1976D2);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: grab;
+    user-select: none;
+    font-weight: 600;
+    font-size: 1.1em;
+    border: none;
+    box-shadow: 0 3px 6px rgba(33, 150, 243, 0.2);
+    transition: all 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.account-type:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    background: linear-gradient(45deg, #1e88e5, #1565c0);
+}
+
+.account-type:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+}
+
+/* Source Document Room */
+.source-document-room {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.transaction-slot {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.transaction-desc {
+    flex: 1;
+}
+
+.document-dropzone {
+    width: 180px;
+    height: 45px;
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+}
+
+.document-dropzone.filled {
+    border-style: solid;
+    border-color: #27ae60;
+    background-color: #eafaf1;
+}
+
+.documents-list {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.document-item {
+    padding: 10px 20px;
+    background-color: #27ae60;
+    color: white;
+    border-radius: 4px;
+    cursor: move;
+    user-select: none;
+}
+
+.document-item:hover {
+    background-color: #219a52;
+}
+
+/* Journal Room */
+.journal-room {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.journal-entry {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.transaction-description {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.entry-form {
+    display: grid;
+    grid-template-columns: auto 150px;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.entry-row {
+    display: contents;
+}
+
+.entry-row input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.journal-room select {
+    width: 100%;
+    min-width: 160px;
+    min-height: 44px;
+    font-size: 1.1em;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1.5px solid #90caf9;
+    background: #f8f9fa;
+    margin-bottom: 6px;
+    margin-top: 2px;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%231976D2" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 24px 24px;
+    padding-right: 44px;
+}
+
+.dropdown-arrow-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 1.5em;
+    color: #1976D2;
+    z-index: 2;
+    line-height: 1;
+    height: 100%;
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.journal-room select {
+    padding-right: 38px; /* space for arrow */
+}
+
+@media (max-width: 768px) {
+  .journal-room select {
+    font-size: 1.2em;
+    min-height: 48px;
+    padding: 14px 16px;
+  }
+}
+
+/* Ledger Room */
+.ledger-room {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ledger-account {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ledger-header {
+    background-color: #e9ecef;
+    padding: 10px 15px;
+    font-weight: bold;
+}
+
+.ledger-entries {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ledger-row {
+    display: table-row;
+}
+
+.ledger-cell {
+    display: table-cell;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.ledger-cell input {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Trial Balance Room */
+.trial-balance-room {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.trial-balance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.trial-balance-table th,
+.trial-balance-table td {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.trial-balance-table th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.amount-cell {
+    text-align: right;
+}
+
+.amount-cell input {
+    width: 120px;
+    padding: 4px 8px;
+    text-align: right;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.total-row {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+/* Common Room Elements */
+.error-message {
+    color: #dc3545;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+.success-message {
+    color: #28a745;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+.hint-button {
+    align-self: flex-end;
+    padding: 8px 15px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.hint-button:hover {
+    background-color: #5a6268;
+}
+
+.hint-text {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    color: #856404;
+}
+
+/* Animations */
+@keyframes highlight {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(52, 152, 219, 0.1); }
+    100% { background-color: transparent; }
+}
+
+.highlight {
+    animation: highlight 1s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .account-slot {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .account-type-box {
+        width: 100%;
+        margin-top: 10px;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .types-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 15px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        z-index: 1000;
+    }
+
+    .account-type {
+        padding: 15px 25px;
+        font-size: 1.1em;
+        margin: 5px;
+    }
+
+    /* Highlight drop zones when dragging */
+    .account-slot.can-drop {
+        background-color: rgba(52, 152, 219, 0.1);
+    }
+}
+
+/* Mobile drag and drop styles */
+.dragging-ghost {
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.account-type {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    cursor: grab;
+    transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+    background-color: #f0f0f0;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin: 5px;
+    font-weight: bold;
+}
+
+.account-type:active {
+    cursor: grabbing;
+    opacity: 0.7;
+    transform: scale(1.05);
+    background-color: #e0e0e0;
+}
+
+.account-type-box {
+    min-height: 50px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    margin: 5px 0;
+    transition: all 0.2s ease;
+    background-color: #fff;
+}
+
+.account-type-box.drag-over {
+    border-style: solid;
+    border-color: #4CAF50;
+    background-color: #E8F5E9;
+    transform: scale(1.02);
+}
+
+.account-type-box.filled {
+    border-style: solid;
+    border-color: #2196F3;
+    background-color: #E3F2FD;
+    color: #1976D2;
+    font-weight: bold;
+}
+
+.accounts-container {
+    padding: 15px;
+    margin-bottom: 100px;
+}
+
+.types-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+/* Desktop specific styles */
+@media (min-width: 769px) {
+    .types-container {
+        position: relative;
+        margin-top: -10px;
+        margin-bottom: 20px;
+        padding: 25px;
+        background: linear-gradient(to bottom, #f5f9ff, #e3f2fd);
+    }
+    
+    .account-type {
+        margin: 5px;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .accounts-container {
+        margin-bottom: 25px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .account-slot:hover {
+        transform: translateX(5px);
+        background-color: #f0f7ff;
+    }
+}

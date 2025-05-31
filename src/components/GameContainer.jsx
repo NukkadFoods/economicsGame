@@ -53,10 +53,11 @@ const GameContainer = ({ onBackToHome, subject }) => {
         handleBubbleAction(index);
     };    return (
         <div className="game-container">
-            <button className="back-button" onClick={onBackToHome}>
-                ←
+            <button className="back-to-home-btn" onClick={onBackToHome}>
+                <span className="home-icon">&#8592;</span>
+                Back to Home
             </button>
-              <ScoreDisplay score={score} />
+            <ScoreDisplay score={score} />
 
             {/* Loading state */}
             {isLoading && (
