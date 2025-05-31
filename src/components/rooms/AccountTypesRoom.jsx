@@ -7,7 +7,6 @@ const AccountTypesRoom = ({ accounts, types, onAttempt }) => {
     const [usedTypes, setUsedTypes] = useState(new Set());
     const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
-    const draggedElement = useRef(null);
     const ghostElement = useRef(null);
 
     useEffect(() => {
@@ -168,7 +167,6 @@ const AccountTypesRoom = ({ accounts, types, onAttempt }) => {
                             onDrop={(e) => {
                                 e.preventDefault();
                                 e.currentTarget.classList.remove('drag-over');
-                                const type = e.dataTransfer.getData('text/plain');
                                 handleDrop(index);
                             }}
                         >

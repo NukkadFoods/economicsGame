@@ -104,8 +104,8 @@ const EscapeRoom = ({ onComplete, onBackToHome }) => {
         showGameOver: false,
         finalScore: 0
     });
-    const [userInput, setUserInput] = useState({});
-    const [feedback, setFeedback] = useState("");    const handleAttempt = useCallback((attempt) => {
+    const [feedback, setFeedback] = useState("");
+    const handleAttempt = useCallback((attempt) => {
         // Check if the attempt matches the expected solution or is marked as correct
         const isCorrect = attempt === "correct" || attempt === ROOM_DATA[currentRoom].solution;
         
@@ -147,7 +147,7 @@ const EscapeRoom = ({ onComplete, onBackToHome }) => {
             }));
             setFeedback("Incorrect. Try again!");
         }
-    }, [currentRoom, gameState.startTime, gameState.score, onComplete]);
+    }, [currentRoom, gameState.startTime, gameState.score]);
 
     const renderRoom = useCallback(() => {
         const room = ROOM_DATA[currentRoom];
@@ -190,14 +190,14 @@ const EscapeRoom = ({ onComplete, onBackToHome }) => {
                 {feedback && <div className={`feedback ${feedback.includes('Correct') ? 'success' : 'error'}`}>{feedback}</div>}
             </div>
         );
-    }, [currentRoom, userInput, feedback, handleAttempt]);    // Component mount and cleanup
+    }, [currentRoom, feedback, handleAttempt]);    // Component mount and cleanup
     useEffect(() => {
         setMounted(true);
         if (!gameState.startTime) {
             setGameState(prev => ({ ...prev, startTime: new Date() }));
         }
         return () => setMounted(false);
-    }, []);
+    }, [gameState.startTime]);
 
     // Prevent rendering until component is mounted
     if (!mounted) {

@@ -130,7 +130,7 @@ const LedgerRoom = ({ entries, onAttempt }) => {
     useEffect(() => {
         const initialBalance = calculateBalance(ledgerEntries);
         setBalance(initialBalance);
-    }, []);
+    }, [ledgerEntries]);
 
     return (
         <div style={styles.ledgerRoom}>
