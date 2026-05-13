@@ -75,7 +75,7 @@ const HomePage = ({ onStartGame }) => {
                                 <div className="features-grid">
                                     <div className="feature-item">
                                         <span className="feature-icon">📝</span>
-                                        <p>35+ Questions per Subject</p>
+                                        <p>100+ Questions per Subject</p>
                                     </div>
                                     <div className="feature-item">
                                         <span className="feature-icon">🎯</span>
